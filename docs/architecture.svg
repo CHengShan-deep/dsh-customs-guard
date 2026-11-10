@@ -1,0 +1,81 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="860" height="440" viewBox="0 0 860 440" font-family="Segoe UI, PingFang SC, sans-serif">
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto">
+      <path d="M0,0 L10,5 L0,10 z" fill="#8b949e"/>
+    </marker>
+    <style>
+      .box{fill:#161b22;stroke:#30363d;stroke-width:1.5;rx:10}
+      .title{fill:#e6edf3;font-size:14px;font-weight:600}
+      .sub{fill:#8b949e;font-size:11.5px}
+      .accent{fill:#4d6bfe}
+      .ok{fill:#3fb950}
+      .warn{fill:#e6a23c}
+      .bad{fill:#f85149}
+      .label{fill:#c9d1d9;font-size:12px}
+    </style>
+  </defs>
+  <rect width="860" height="440" fill="#0d1117"/>
+
+  <!-- Model / agent -->
+  <rect class="box" x="24" y="28" width="200" height="74" rx="10"/>
+  <text class="title" x="40" y="58">DeepSeek Harness · Agent</text>
+  <text class="sub" x="40" y="78">calls the pwsh tool</text>
+
+  <!-- Tool boundary -->
+  <rect class="box" x="24" y="140" width="200" height="96" rx="10"/>
+  <text class="title" x="40" y="168">pwsh_guarded / pwsh</text>
+  <text class="sub" x="40" y="188">same schema as native</text>
+  <text class="sub" x="40" y="206">shadow: extra tool</text>
+  <text class="sub" x="40" y="224">replace: takes the name</text>
+
+  <!-- Rules -->
+  <rect class="box" x="300" y="112" width="200" height="106" rx="10"/>
+  <text class="title" x="316" y="140">1 · Rules (offline)</text>
+  <text class="sub" x="316" y="160">read-only → allow</text>
+  <text class="sub" x="316" y="178">protected/destructive → deny</text>
+  <text class="sub" x="316" y="196">unknown → next stage</text>
+
+  <!-- Review modes -->
+  <rect class="box" x="300" y="250" width="200" height="126" rx="10"/>
+  <text class="title" x="316" y="278">2 · Review mode</text>
+  <text class="sub" x="316" y="298">rules: deny unknowns</text>
+  <text class="sub" x="316" y="316">manual: ask the human</text>
+  <text class="sub" x="316" y="334">hybrid: ask the model</text>
+  <text class="sub" x="316" y="356">model outage → human</text>
+
+  <!-- Model review -->
+  <rect class="box" x="576" y="250" width="250" height="126" rx="10"/>
+  <text class="title" x="592" y="278">Model review (separate call)</text>
+  <text class="sub" x="592" y="298">stable system prompt prefix</text>
+  <text class="sub" x="592" y="316">clipped arguments, JSON verdict</text>
+  <text class="sub" x="592" y="334">thinking off unless nested</text>
+  <text class="sub" x="592" y="352">timeouts retried, 20s cap</text>
+
+  <!-- Native executor -->
+  <rect class="box" x="576" y="112" width="250" height="106" rx="10"/>
+  <text class="title" x="592" y="140">3 · ctx.shell (native)</text>
+  <text class="sub" x="592" y="160">sandbox, timeout, truncation</text>
+  <text class="sub" x="592" y="178">unchanged by this plugin</text>
+  <text class="sub" x="592" y="196">one child pwsh per call</text>
+
+  <!-- edges -->
+  <path d="M224 65 L300 140" stroke="#8b949e" fill="none" marker-end="url(#arrow)"/>
+  <text class="label" x="236" y="96">tool call</text>
+
+  <path d="M500 165 L576 165" stroke="#8b949e" fill="none" marker-end="url(#arrow)"/>
+  <text class="label" x="512" y="156">allow</text>
+
+  <path d="M400 218 L400 250" stroke="#8b949e" fill="none" marker-end="url(#arrow)"/>
+  <text class="label" x="410" y="240">unknown</text>
+
+  <path d="M500 313 L576 313" stroke="#8b949e" fill="none" marker-end="url(#arrow)"/>
+  <text class="label" x="512" y="304">hybrid</text>
+
+  <path d="M826 250 C 860 210, 840 170, 826 165" stroke="#8b949e" fill="none" marker-end="url(#arrow)"/>
+  <text class="label" x="700" y="238">allow → execute</text>
+
+  <path d="M224 236 C 250 300, 260 330, 300 330" stroke="#e6a23c" fill="none" marker-end="url(#arrow)"/>
+  <text class="label" x="228" y="300">approval prompt</text>
+
+  <text class="sub" x="24" y="408">In-process cordis plugin: no hook, no MCP server, no port. Fail-closed on every unexpected answer.</text>
+</svg>

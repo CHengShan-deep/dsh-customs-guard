@@ -1,0 +1,7 @@
+# 默认层：声明本插件（客户端设置页也依赖这一条）。
+# 重复挂载由插件内部去重：后到的 profile 配置（replace）胜出，只保留一个工具。
+- insert:
+    - id: customs-guard
+      name: '@dsh-local/dsh-customs-guard'
+      config:
+        mode: shadow

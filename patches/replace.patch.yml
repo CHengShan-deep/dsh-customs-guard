@@ -1,0 +1,8 @@
+# 可选叠加层：真正替换时才用（追加到 profile 的 cordis.patch.yml）。
+# 1) 禁用原生 pwsh 行；2) 把 customs-guard 切到 replace（注册同名 pwsh）。
+- id: tool-pwsh
+  disabled: true
+
+- id: customs-guard
+  config:
+    mode: replace
