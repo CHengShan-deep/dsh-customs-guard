@@ -186,7 +186,7 @@ test('escalate is useless where no human exists (delegated session)', async () =
           reviewer: async () => ({ decision: 'deny', code: 'MODEL_DENY', reason: 'rewrites history' })
         }
       ),
-    (error) => error instanceof GuardDenied && error.reason === 'MODEL_DENY'
+    (error) => error instanceof GuardDenied && error.reason === 'HUMAN_UNAVAILABLE'
   );
   assert.equal(calls.execute.length, 0);
 });
