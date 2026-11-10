@@ -87,17 +87,21 @@ test('a drive root with a trailing separator is a destructive root', () => {
   }
 });
 
-test('a rules-allowed delete is still checked against the intention', async () => {
+test('a destructive command with no intention is refused before any review', async () => {
   const { ctx, calls } = makeCtx();
+  let reviewerCalled = false;
   await assert.rejects(
     () =>
       runGuarded(ctx, { command: 'Remove-Item .\\probe-mismatch -Recurse -Force', description: '查看文件列表' }, exec, {
         settings: { reviewMode: 'hybrid', apiKey: 'test-key' },
-        reviewer: async () =>
-          ({ decision: 'deny', code: 'MODEL_DENY', reason: 'No intention stated; destructive delete' })
+        reviewer: async () => {
+          reviewerCalled = true;
+          return { decision: 'allow', reason: 'ok' };
+        }
       }),
-    (error) => error instanceof GuardDenied && error.reason === 'MODEL_DENY'
+    (error) => error instanceof GuardDenied && error.reason === 'MISSING_INTENTION'
   );
+  assert.equal(reviewerCalled, false, 'the model must not be asked at all');
   assert.equal(calls.execute.length, 0);
 });
 
@@ -105,7 +109,11 @@ test('the scoped-model switch off keeps rules-allowed deletes quiet', async () =
   const { ctx, calls } = makeCtx();
   const dto = await runGuarded(
     ctx,
-    { command: 'Remove-Item .\\probe-mismatch -Recurse -Force', description: '清理临时目录' },
+    {
+      command: 'Remove-Item .\\probe-mismatch -Recurse -Force',
+      description: '清理临时目录',
+      intention: '删除本会话创建的临时目录，仅清理自己的产物'
+    },
     exec,
     {
       settings: { reviewMode: 'hybrid', apiKey: 'test-key', scopedModelReview: false },
@@ -124,7 +132,7 @@ test('a DeepSeek key overrides a stale opencode provider', async () => {
   let seenProvider = '';
   await runGuarded(
     ctx,
-    { command: 'git push origin main', description: '推送' },
+    { command: 'git push origin main', description: '推送', intention: '推送提交' },
     exec,
     {
       settings: {
@@ -179,7 +187,7 @@ test('escalate is useless where no human exists (delegated session)', async () =
     () =>
       runGuarded(
         ctx,
-        { command: 'git push --force origin main', description: '覆盖', escalate: true },
+        { command: 'git push --force origin main', description: '覆盖', intention: '覆盖远端历史', escalate: true },
         humanExec,
         {
           settings: { reviewMode: 'hybrid', apiKey: 'k' },
@@ -216,7 +224,7 @@ test('approval resolved from the plugin root works on a scoped ctx', async () =>
   };
   const dto = await runGuarded(
     ctx,
-    { command: 'git push --force origin main', description: '覆盖远端', escalate: true, authority: '用户：允许覆盖' },
+    { command: 'git push --force origin main', description: '覆盖远端', intention: '覆盖远端历史', escalate: true, authority: '用户：允许覆盖' },
     humanExec,
     {
       settings: { reviewMode: 'hybrid', apiKey: 'k' },
@@ -233,7 +241,7 @@ test('escalate also covers a scoped delete the model refused', async () => {
   const { ctx, calls, asked } = makeCtxWithApproval('allowed-once');
   const dto = await runGuarded(
     ctx,
-    { command: 'Remove-Item .\\build -Recurse -Force', description: '清理构建目录', escalate: true, authority: '用户：允许清理' },
+    { command: 'Remove-Item .\\build -Recurse -Force', description: '清理构建目录', intention: '删除构建产物以释放空间', escalate: true, authority: '用户：允许清理' },
     humanExec,
     {
       settings: { reviewMode: 'hybrid', apiKey: 'k' },
@@ -250,7 +258,7 @@ test('hybrid lets the model overturn a rule denial', async () => {
   const seen = [];
   const dto = await runGuarded(
     ctx,
-    { command: 'git push origin main', description: '推送已验证的提交' },
+    { command: 'git push origin main', description: '推送已验证的提交', intention: '把已验证的提交推到远端' },
     exec,
     {
       settings: { reviewMode: 'hybrid', apiKey: 'test-key' },
@@ -269,7 +277,7 @@ test('hybrid still refuses when the model denies a rule denial', async () => {
   const { ctx, calls } = makeCtx();
   await assert.rejects(
     () =>
-      runGuarded(ctx, { command: 'git push --force origin main', description: '强制推送' }, exec, {
+      runGuarded(ctx, { command: 'git push --force origin main', description: '强制推送', intention: '用本地历史覆盖远端的历史' }, exec, {
         settings: { reviewMode: 'hybrid', apiKey: 'test-key' },
         reviewer: async () => ({ decision: 'deny', code: 'MODEL_DENY', reason: '强制推送不可恢复' })
       }),
