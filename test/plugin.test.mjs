@@ -229,6 +229,22 @@ test('approval resolved from the plugin root works on a scoped ctx', async () =>
   assert.equal(calls.execute.length, 1);
 });
 
+test('escalate also covers a scoped delete the model refused', async () => {
+  const { ctx, calls, asked } = makeCtxWithApproval('allowed-once');
+  const dto = await runGuarded(
+    ctx,
+    { command: 'Remove-Item .\\build -Recurse -Force', description: '清理构建目录', escalate: true, authority: '用户：允许清理' },
+    humanExec,
+    {
+      settings: { reviewMode: 'hybrid', apiKey: 'k' },
+      reviewer: async () => ({ decision: 'deny', code: 'MODEL_DENY', reason: 'no intention stated' })
+    }
+  );
+  assert.equal(dto.kind, 'foreground');
+  assert.equal(asked.length, 1);
+  assert.equal(calls.execute.length, 1);
+});
+
 test('hybrid lets the model overturn a rule denial', async () => {
   const { ctx, calls } = makeCtx();
   const seen = [];
