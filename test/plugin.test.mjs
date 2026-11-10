@@ -145,6 +145,64 @@ test('a DeepSeek key overrides a stale opencode provider', async () => {
   assert.equal(seenBase, 'https://api.deepseek.com/v1');
 });
 
+test('escalate routes a model denial to the human, who can approve once', async () => {
+  const { ctx, calls, asked } = makeCtxWithApproval('allowed-once');
+  const dto = await runGuarded(
+    ctx,
+    {
+      command: 'git push --force origin main',
+      description: '覆盖远端历史',
+      intention: '把错误的提交历史强制覆盖为已验证版本',
+      escalate: true,
+      authority: '用户：把那个仓库删掉重建'
+    },
+    humanExec,
+    {
+      settings: { reviewMode: 'hybrid', apiKey: 'k' },
+      reviewer: async () => ({ decision: 'deny', code: 'MODEL_DENY', reason: 'force push rewrites shared history' })
+    }
+  );
+  assert.equal(dto.kind, 'foreground');
+  assert.equal(asked.length, 1);
+  assert.match(asked[0].reason, /force push rewrites shared history/);
+  assert.match(asked[0].reason, /用户：把那个仓库删掉重建/);
+  assert.equal(calls.execute.length, 1);
+});
+
+test('escalate is useless where no human exists (delegated session)', async () => {
+  const { ctx, calls } = makeCtx();
+  ctx.get = (name) =>
+    name === 'approval'
+      ? { effectivePolicy: () => 'never', request: async () => 'allowed-once' }
+      : undefined;
+  await assert.rejects(
+    () =>
+      runGuarded(
+        ctx,
+        { command: 'git push --force origin main', description: '覆盖', escalate: true },
+        humanExec,
+        {
+          settings: { reviewMode: 'hybrid', apiKey: 'k' },
+          reviewer: async () => ({ decision: 'deny', code: 'MODEL_DENY', reason: 'rewrites history' })
+        }
+      ),
+    (error) => error instanceof GuardDenied && error.reason === 'MODEL_DENY'
+  );
+  assert.equal(calls.execute.length, 0);
+});
+
+test('escalate cannot lift a hard-deny reason', async () => {
+  const { ctx, calls } = makeCtxWithApproval('allowed-once');
+  await assert.rejects(
+    () =>
+      runGuarded(ctx, { command: 'Remove-Item C:\\Windows -Recurse -Force', description: '清理', escalate: true }, humanExec, {
+        settings: { reviewMode: 'hybrid', apiKey: 'k' }
+      }),
+    (error) => error instanceof GuardDenied && error.reason === 'PROTECTED_PATH'
+  );
+  assert.equal(calls.execute.length, 0);
+});
+
 test('hybrid lets the model overturn a rule denial', async () => {
   const { ctx, calls } = makeCtx();
   const seen = [];
