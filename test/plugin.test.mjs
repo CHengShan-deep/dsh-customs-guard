@@ -203,6 +203,32 @@ test('escalate cannot lift a hard-deny reason', async () => {
   assert.equal(calls.execute.length, 0);
 });
 
+test('approval resolved from the plugin root works on a scoped ctx', async () => {
+  // The agent-scoped ctx only exposes declared services, so `ctx.get('approval')`
+  // is undefined there; the root-resolved instance must be used instead.
+  const { ctx, calls } = makeCtx();
+  const asked = [];
+  const approval = {
+    request: async (request) => {
+      asked.push(request);
+      return 'allowed-once';
+    }
+  };
+  const dto = await runGuarded(
+    ctx,
+    { command: 'git push --force origin main', description: '覆盖远端', escalate: true, authority: '用户：允许覆盖' },
+    humanExec,
+    {
+      settings: { reviewMode: 'hybrid', apiKey: 'k' },
+      approval,
+      reviewer: async () => ({ decision: 'deny', code: 'MODEL_DENY', reason: 'rewrites history' })
+    }
+  );
+  assert.equal(dto.kind, 'foreground');
+  assert.equal(asked.length, 1);
+  assert.equal(calls.execute.length, 1);
+});
+
 test('hybrid lets the model overturn a rule denial', async () => {
   const { ctx, calls } = makeCtx();
   const seen = [];
